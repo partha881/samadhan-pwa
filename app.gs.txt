@@ -1,0 +1,252 @@
+﻿// 📌 Constants
+const SHEET_NAME = "Data";
+const MOTHER_FOLDER_ID = "1xEnum8OjhuGycv-XSlfNC8tGh2yxPjxNZs7EteTeFFqFUxdzih98FneFIvH3U9AKuhyeg0Of";
+
+// 🚀 Serve the frontend HTML
+function doGet(e) {
+  const path = e?.parameter?.path;
+
+  if (path === 'manifest') {
+    return ContentService.createTextOutput(getManifest())
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (path === 'sw') {
+    return ContentService.createTextOutput(getServiceWorker())
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  // Serve main HTML
+  return HtmlService.createHtmlOutputFromFile('index')
+    .setTitle('Samadhan App');
+}
+
+function getManifest() {
+  return JSON.stringify({
+    name: "Samadhan App",
+    short_name: "Samadhan",
+    start_url: "?path=index",
+    scope: "./",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#1e88e5",
+    icons: [
+      {
+        src: "https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png",
+        sizes: "192x192",
+        type: "image/png"
+      },
+      {
+        src: "https://www.gstatic.com/images/branding/product/1x/drive_2020q4_48dp.png",
+        sizes: "512x512",
+        type: "image/png"
+      }
+    ]
+  });
+}
+
+function getServiceWorker() {
+  return `
+self.addEventListener('install', event => {
+  console.log('[SW] Installed');
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', event => {
+  console.log('[SW] Activated');
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+  `;
+}
+
+// 🧹 Normalize string values for comparison
+function normalizeValue(str) {
+  return (str || '').toLowerCase().replace(/[\/\.]/g, "-").replace(/\s+/g, "-").trim();
+}
+
+// 🔍 Search within a specific column
+function searchInColumns(columnName, query) {
+  const sheet = getSheet();
+  const data = sheet.getDataRange().getDisplayValues();
+  const headers = data[0];
+  const colIndex = headers.indexOf(columnName);
+  if (colIndex === -1) return [];
+
+  const normalizedQuery = normalizeValue(query);
+  return data.slice(1).filter(row => normalizeValue(row[colIndex]).includes(normalizedQuery));
+}
+
+// 📤 Upload a file and link it to Drive + Sheet
+function uploadFiles(formData) {
+  if (!formData || !formData.base64 || !formData.fileName || !formData.epicSl) {
+    return { success: false, message: "❌ Invalid upload data." };
+  }
+
+  try {
+    const sheet = getSheet();
+    const headers = sheet.getRange("A1:AI1").getValues()[0];
+    const epicSlIndex = headers.indexOf("Epic Sl. Number");
+    const imgColIndex = headers.indexOf("Image Link");
+    const docColIndex = headers.indexOf("Document");
+
+    const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+    const epicSl = formData.epicSl.trim();
+    let rowIndex = -1;
+
+    for (let i = 0; i < data.length; i++) {
+      if (String(data[i][epicSlIndex]).trim() === epicSl) {
+        rowIndex = i + 2;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return { success: false, message: "❌ Epic Sl. Number not found in sheet." };
+
+    const motherFolder = DriveApp.getFolderById(MOTHER_FOLDER_ID);
+    const folder = motherFolder.getFoldersByName(epicSl).hasNext()
+      ? motherFolder.getFoldersByName(epicSl).next()
+      : motherFolder.createFolder(epicSl);
+
+    // Remove duplicate files
+    const existingFiles = folder.getFilesByName(formData.fileName);
+    while (existingFiles.hasNext()) {
+      existingFiles.next().setTrashed(true);
+    }
+
+    const decoded = Utilities.base64Decode(formData.base64.split(',')[1]);
+    const blob = Utilities.newBlob(decoded, formData.mimeType, formData.fileName);
+    const file = folder.createFile(blob);
+    const link = `https://drive.google.com/file/d/${file.getId()}/view`;
+
+    const targetCol = formData.mimeType.startsWith("image") ? imgColIndex + 1 : docColIndex + 1;
+    const existing = sheet.getRange(rowIndex, targetCol).getValue();
+    const updatedLinks = (existing ? existing.split('\n') : []).filter(l => !l.includes(formData.fileName));
+    updatedLinks.push(link);
+
+    sheet.getRange(rowIndex, targetCol).setValue(updatedLinks.join('\n'));
+    return { success: true, message: "✅ Upload successful." };
+
+  } catch (err) {
+    Logger.log(err);
+    return { success: false, message: "❌ Upload failed: " + err.message };
+  }
+}
+
+// 💾 Save updated data by Epic Sl. Number
+function saveEditedData(data) {
+  if (!data || !data["Epic Sl. Number"]) return "❌ Epic Sl. Number missing.";
+
+  const sheet = getSheet();
+  const headers = sheet.getRange("A1:AI1").getValues()[0];
+  const epicIndex = headers.indexOf("Epic Sl. Number");
+  const epic = data["Epic Sl. Number"].trim();
+
+  const allData = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+  let rowIndex = allData.findIndex(row => String(row[epicIndex]).trim() === epic) + 2;
+
+  if (rowIndex < 2) return "❌ Record not found.";
+
+  const rowValues = headers.map(header => data[header] || "");
+  sheet.getRange(rowIndex, 1, 1, rowValues.length).setValues([rowValues]);
+
+  return "✅ Record updated.";
+}
+
+// 🗑️ Delete record by Epic Sl. Number
+function deleteRecordByEpic(epic) {
+  if (!epic) return "❌ Invalid Epic Sl. Number.";
+
+  const sheet = getSheet();
+  const headers = sheet.getRange("A1:AI1").getValues()[0];
+  const index = headers.indexOf("Epic Sl. Number");
+  const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, headers.length).getValues();
+
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][index]).trim() === epic.trim()) {
+      sheet.deleteRow(i + 2);
+      return "✅ Record deleted.";
+    }
+  }
+
+  return "❌ Record not found.";
+}
+
+// 🔐 Validate password
+function validatePassword(input) {
+  const storedHash = PropertiesService.getScriptProperties().getProperty("ADMIN_PASSWORD_HASH");
+  if (!storedHash || !input) return false;
+
+  const inputHash = hashString(input.trim());
+  return storedHash === inputHash;
+}
+
+// 🔐 One-time password setup
+function runOnceSetPassword() {
+  setAdminPassword("Dada@2661");  // ✅ Change this to your own strong password
+}
+
+// 🔐 Save hashed password
+function setAdminPassword(password) {
+  if (!password || password.trim() === "") {
+    throw new Error("❌ Password cannot be empty.");
+  }
+  const hash = hashString(password.trim());
+  PropertiesService.getScriptProperties().setProperty("ADMIN_PASSWORD_HASH", hash);
+}
+
+// 🔐 Hash function (SHA-256)
+function hashString(input) {
+  const safeInput = input || "";
+  const rawHash = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, safeInput, Utilities.Charset.UTF_8);
+  return rawHash.map(b => ('0' + (b & 0xFF).toString(16)).slice(-2)).join('');
+}
+
+function changePassword(oldPassword, newPassword) {
+  if (!validatePassword(oldPassword)) {
+    return { success: false, message: "❌ Old password is incorrect." };
+  }
+  if (!newPassword || newPassword.trim() === "") {
+    return { success: false, message: "❌ New password cannot be empty." };
+  }
+  setAdminPassword(newPassword);
+  return { success: true, message: "✅ Password changed successfully." };
+}
+
+// 📄 Helper to get active sheet
+function getSheet() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_NAME);
+}
+
+// 📊 Get chart data
+function getChartData() {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const genderCounts = { Male: 0, Female: 0 };
+  const choiceCounts = {};
+  const genderIndex = headers.indexOf("Gender");
+  const choiceIndex = headers.indexOf("Collector's Choice");
+
+  for (let i = 1; i < data.length; i++) {
+    const gender = (data[i][genderIndex] || "").toString().trim().toLowerCase();
+    const choice = (data[i][choiceIndex] || "").toString().trim();
+
+    if (gender === "male") genderCounts.Male++;
+    else if (gender === "female") genderCounts.Female++;
+
+    if (choice) {
+      choiceCounts[choice] = (choiceCounts[choice] || 0) + 1;
+    }
+  }
+
+  return {
+    gender: genderCounts,
+    choice: choiceCounts
+  };
+}
