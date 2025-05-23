@@ -1,0 +1,1286 @@
+﻿
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samadhan App</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="https://partha881.github.io/samadhan-pwa/manifest.json" />
+  <meta name="theme-color" content="#1e88e5" />
+
+   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+  background: #f9f9f9;
+  margin: 0;
+}
+
+#logo {
+  height: 55px;
+  display: inline-block;
+}
+
+.print-header {
+  display: none; /* Hide on screen */
+}
+
+input, button, select {
+  margin: 5px 8px 5px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+button[onclick="toggleEditMode()"] {
+  transition: background-color 0.3s ease;
+}
+
+button[onclick="toggleEditMode()"].off {
+  background-color: #007bff;
+}
+button[onclick="toggleEditMode()"].off:hover {
+  background-color: #0056b3;
+}
+
+button[onclick="toggleEditMode()"].on {
+  background-color: #28a745;
+}
+button[onclick="toggleEditMode()"].on:hover {
+  background-color: #218838;
+}
+
+#results {
+  margin-top: 20px;
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th {
+  background-color: #f2f2f2;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  cursor: default;
+  user-select: none;
+}
+
+#loading {
+  display: none;
+  margin-top: 10px;
+  font-weight: bold;
+  color: #555;
+}
+
+#overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 9998;
+}
+
+#uploadModal {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  width: 320px;
+  max-width: 90vw;
+  background: white;
+  padding: 20px 25px;
+  border-radius: 10px;
+  border: 1px solid #888;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.25);
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+#uploadModal h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+#uploadModal input[type="file"] {
+  width: 100%;
+  margin-bottom: 15px;
+}
+
+#uploadModal button {
+  margin-right: 10px;
+}
+
+#toast {
+  visibility: hidden;
+  min-width: 250px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 14px;
+  position: fixed;
+  z-index: 10000;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.5s ease-in-out, visibility 0.5s;
+}
+
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+#toast.success {
+  background-color: #28a745;
+}
+
+#toast.error {
+  background-color: #dc3545;
+}
+
+.editable td[contenteditable="true"] {
+  background-color: #fff8dc !important;
+  outline: 2px dashed #28a745;
+}
+
+.read-only td {
+  background-color: #f9f9f9;
+}
+
+/* ✅✅✅ PRINT RULES START */
+@media print {
+  @page {
+    size: sele;
+    margin: 1cm;
+    counter-increment: page;
+  }
+
+  body {
+    background: #fff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    counter-reset: page;
+  }
+
+  /* ✅ Show only during print */
+  .print-header {
+    display: flex !important;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    width: 100%;
+    page-break-after: avoid;
+  }
+
+  .print-header img.logo {
+    height: 55px;
+    width: auto;
+    object-fit: contain;
+    display: block;
+  }
+
+  .print-header img.profile {
+    height: 60px;
+    width: 60px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: block;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    page-break-inside: auto;
+  }
+
+  th, td {
+    border: 1px solid #ccc;
+    padding: 8px;
+    text-align: left;
+    vertical-align: top;
+    word-wrap: break-word;
+  }
+
+  th {
+    background: #333 !important;
+    color: white !important;
+    font-weight: bold;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+
+  .no-print,
+  input,
+  button,
+  select,
+  .btn,
+  #editControls {
+    display: none !important;
+  }
+
+  .page-number::after {
+    content: "Page " counter(page);
+    position: fixed;
+    bottom: 10px;
+    right: 20px;
+    font-size: 12px;
+    color: #333;
+  }
+
+  .print-footer {
+    position: fixed;
+    bottom: 10px;
+    left: 20px;
+    width: auto;
+    text-align: left;
+  }
+
+  .print-footer img.qr {
+    height: 60px;
+    width: 60px;
+    object-fit: contain;
+    display: inline-block;
+  }
+}
+/* ✅✅✅ PRINT RULES END */
+
+#sortButton.sort-off {
+  background-color: #007bff;
+}
+#sortButton.sort-off:hover {
+  background-color: #0056b3;
+}
+
+#sortButton.sort-on {
+  background-color: #ffc107;
+  color: #000;
+}
+#sortButton.sort-on:hover {
+  background-color: #e0a800;
+}
+
+/* 🌐 Top-Right Corner Container */
+#topRightControls {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+/* 📱 Install Button */
+.install-button {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+/* Slide Toggle */
+.switch {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  display: inline-block;
+  width: 50px;
+  height: 26px;
+  z-index: 1000;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 4px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:checked + .slider:before {
+  transform: translateX(24px);
+}
+
+/* 🌙 NIGHT MODE */
+body.night {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+body.night #results {
+  background: #1e1e1e;
+  border-color: #333;
+}
+
+body.night table {
+  background-color: #1e1e1e;
+  color: #ddd;
+}
+
+body.night th {
+  background-color: #333 !important;
+  color: #fff !important;
+  border-color: #444;
+}
+
+body.night td {
+  border-color: #444;
+}
+
+body.night input,
+body.night select,
+body.night button {
+  background-color: #222;
+  color: #eee;
+  border-color: #444;
+}
+
+body.night .slider {
+  background-color: #666;
+}
+
+/* Data Analysis Section */
+#chartsContainer {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+    #chartsContainer canvas {
+      max-width: 400px;
+      max-height: 300px;
+    }
+
+</style>
+</head>
+<body>
+
+  <!-- 🧭 Top-right corner container -->
+<div id="topRightControls">
+  <button id="installBtn" style="display:none;">📱 Install App</button>
+  </div>
+
+  <!-- 🌙 Day/Night Toggle -->
+  <label class="switch">
+    <input type="checkbox" id="themeToggle">
+    <span class="slider"></span>
+  </label>
+</div>
+
+  <!-- 🔵 App Logo -->
+  <img src="https://i.postimg.cc/NF6b45fG/SAMADHAN-3.png" alt="Logo" id="logo" />
+
+<!-- CONTINUE rest of the app content here... -->
+
+  <h1>Welcome to Samadhan App</h1>
+
+  <label for="columnSelect">Select Column:</label>
+  <select id="columnSelect">
+    <option value="">-- Select --</option>
+    <option value="Name">Name</option>
+    <option value="Email address">Email Address</option>
+    <option value="Form Number">Form Number</option>
+    <option value="Epic Id No">Epic Id No</option>
+    <option value="Part Number">Part Number</option>
+    <option value="Epic Sl. Number">Epic Sl. Number</option>
+    <option value="Date of Birth">Date of Birth</option>
+    <option value="Marriage Date">Marriage Date</option>
+    <option value="Blood Group">Blood Group</option>
+  </select>
+
+  <input type="text" id="searchBox" placeholder="Enter value..." />
+  <button onclick="performSearch()">🔎 Search</button>
+  <button onclick="clearSearch()">❌ Clear</button>
+ <button id="uploadButton" onclick="showUploadModal()" style="display: none;">📤 Upload</button>
+<button id="sortButton" onclick="makeTableSortable()" style="display: none;">🔃 Sort</button>
+ <button id="dataAnalysisButton" onclick="toggleAnalysis()">📊 Data Analysis</button>
+  <button onclick="openForm()">📝 Form</button>
+ <div id="editControls" style="display: none; margin-top: 10px;">
+  <input type="password" id="editPassword" placeholder="🔑 Enter Password" />
+<button onclick="toggleEditMode()">✏️ Edit Mode</button>
+<button id="saveChanges" onclick="saveEditedData()" style="display: none;">💾 Save</button>
+<button id="deleteButton" onclick="confirmDelete()" style="display: none;">🗑️ Delete</button>
+<button onclick="printRecord()" class="no-print">🖨️ Print</button>
+
+<!-- ✅ This goes inside your <body>, preferably right before the table -->
+<div class="print-header">
+  <img class="logo" src="https://i.postimg.cc/NF6b45fG/SAMADHAN-3.png" alt="Logo">
+  <img class="profile" src="https://yourdomain.com/profile.jpg" alt="Profile">
+</div>
+
+<!-- 📄 Page Number (Visible Only in Print) -->
+<div class="page-number"></div>
+
+<!-- Optional Undo/Redo -->
+<button onclick="undo()">↩️ Undo</button>
+<button onclick="redo()">↪️ Redo</button>
+
+</div>
+
+<!-- 📊 Charts Section -->
+  <div id="chartsContainer" style="display: none;">
+    <h2>Gender Distribution</h2>
+    <canvas id="genderChart" width="400" height="400"></canvas>
+
+    <h2>Collector's Choice Distribution</h2>
+    <canvas id="choiceChart" width="400" height="400"></canvas>
+
+    <!-- Gender-wise Choice Count -->
+    <div id="genderChoiceContainer"></div>
+  </div>
+  
+  <div class="checkbox-container" id="checkboxContainer" style="display: none;"></div>
+
+  <div id="results"></div>
+  <div id="loading">⏳ Uploading...</div>
+
+  <!-- Upload Modal -->
+  <div id="overlay" onclick="closeUploadModal()"></div>
+  <div id="uploadModal" role="dialog" aria-modal="true" aria-labelledby="uploadModalTitle">
+    <h3 id="uploadModalTitle">📤 Upload File</h3>
+    <input type="file" id="fileInput" multiple />
+    <div style="text-align: right;">
+      <button onclick="uploadFile()">✅ Save</button>
+      <button onclick="closeUploadModal()">❌ Cancel</button>
+    </div>
+  </div>
+
+  <label class="switch">
+  <input type="checkbox" id="themeToggle" onchange="toggleTheme()">
+  <span class="slider round"></span>
+</label>
+
+  <!-- Toast container -->
+  <div id="toast"></div>
+
+  <div>
+  <h3>Change Admin Password</h3>
+  <input type="password" id="oldPassword" placeholder="Old Password" />
+  <input type="password" id="newPassword" placeholder="New Password" />
+  <button onclick="changePassword()">Change Password</button>
+  <p id="changePasswordMsg"></p>
+</div>
+
+   <script>
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = ''; // reset classes
+      toast.classList.add('show');
+      toast.classList.add(type === 'success' ? 'success' : 'error');
+
+      // Hide after 3.5 seconds
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3500);
+    }
+    
+   let currentEpicSl = null;
+    const headers = [
+      "Timestamp", "Email address", "Form Number", "Epic Id No", "Part Number",
+      "Epic Sl. Number", "Name", "Father's Name", "Mother's Name", "Gender",
+      "Date of Birth", "Age", "Religion", "Blood Group", "Phone Number", "Email Id",
+      "Address", "Residence At", "Residence As", "Ward No", "Floor No", "Landlord Name",
+      "Marriage Status", "Marriage Date", "Occupation", "Service Type", "Employee",
+      "Organization", "Designation/Posting Details", "Business Type", "Collector Name",
+      "Collector Phone Number", "Collector's Choice", "Image Link", "Document"
+    ];
+
+    function performSearch() {
+  const query = document.getElementById('searchBox').value.trim();
+  const column = document.getElementById('columnSelect').value;
+
+  if (!query) {
+    alert("Please enter a value.");
+    return;
+  }
+
+  google.script.run.withSuccessHandler(function(results) {
+    const container = document.getElementById('results');
+    container.innerHTML = "";
+
+    // ❌ No results
+    if (results.length === 0) {
+      container.textContent = "❓ No results found.";
+      currentEpicSl = null;
+
+      // 🔒 Hide all UI controls
+      document.getElementById("checkboxContainer").style.display = "none";
+      document.getElementById("editControls").style.display = "none";
+      document.getElementById("sortButton").style.display = "none";
+      document.getElementById("uploadButton").style.display = "none";
+      return;
+    }
+
+    // ✅ Create result table
+    const table = document.createElement("table");
+    table.id = "resultsTable";
+
+    if (results.length === 1) {
+      const epicSlIndex = headers.indexOf("Epic Sl. Number");
+      currentEpicSl = results[0][epicSlIndex];
+
+      const tbody = document.createElement("tbody");
+      results[0].forEach((cell, i) => {
+        const tr = document.createElement("tr");
+        const th = document.createElement("th");
+        th.textContent = headers[i];
+        const td = document.createElement("td");
+
+        if (headers[i] === "Image Link" || headers[i] === "Document") {
+          td.innerHTML = formatFileList(cell);
+        } else {
+          td.textContent = cell;
+        }
+
+        tr.appendChild(th);
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+    } else {
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headers.forEach(header => {
+        const th = document.createElement("th");
+        th.textContent = header;
+        headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      results.forEach(row => {
+        const tr = document.createElement("tr");
+        row.forEach((cell, i) => {
+          const td = document.createElement("td");
+          if (headers[i] === "Image Link" || headers[i] === "Document") {
+            td.innerHTML = formatFileList(cell);
+          } else {
+            td.textContent = cell;
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+
+      currentEpicSl = null;
+    }
+
+    container.appendChild(table);
+
+    // ✅ Show required buttons and controls
+    document.getElementById("checkboxContainer").style.display = "block";
+    document.getElementById("editControls").style.display = "block";
+    document.getElementById("sortButton").style.display = "inline-block";
+    document.getElementById("uploadButton").style.display = "inline-block";
+    document.getElementById("dataAnalysisButton").style.display = "inline-block";
+
+    renderCheckboxes(headers);
+
+  }).searchInColumns(column, query);
+}
+
+   function formatFileList(data) {
+  if (!data) return '';
+
+  return data.split('\n').map((link, i) => {
+    const isImage = link.includes("/view");
+    const fileIdMatch = link.match(/\/d\/(.*?)\//);
+    const fileId = fileIdMatch ? fileIdMatch[1] : null;
+
+    if (!fileId) return `${i + 1}. <a href="${link}" target="_blank">Unknown File</a>`;
+
+    const thumbnail = `https://drive.google.com/thumbnail?id=${fileId}`;
+
+    if (link.includes(".jpg") || link.includes(".png") || link.includes(".jpeg")) {
+      return `${i + 1}. 🖼️ <a href="${link}" target="_blank">
+        <img src="${thumbnail}" height="60" style="vertical-align:middle; margin-right:8px;">
+        ${extractFileName(link)}
+      </a>`;
+    } else {
+      return `${i + 1}. 📄 <a href="${link}" target="_blank">${extractFileName(link)}</a>`;
+    }
+  }).join('<br>');
+}
+
+function extractFileName(link) {
+  try {
+    const url = new URL(link);
+    return decodeURIComponent(url.pathname.split('/').pop().replace(/_/g, ' '));
+  } catch {
+    return 'File';
+  }
+}
+
+    function clearSearch() {
+  document.getElementById('searchBox').value = '';
+  document.getElementById('columnSelect').value = '';
+  document.getElementById('results').innerHTML = '';
+
+  // ❌ Hide all controls when search is cleared
+  document.getElementById("checkboxContainer").style.display = "none";
+  document.getElementById("editControls").style.display = "none";
+  document.getElementById("actionButtons").style.display = "none";
+  document.getElementById("sortButton").style.display = "none";
+  document.getElementById("uploadButton").style.display = "none";
+  document.getElementById("redoButton").style.display = "none";
+  document.getElementById("undoButton").style.display = "none";
+}
+
+    let sortEnabled = false;
+
+function makeTableSortable() {
+  const table = document.querySelector("#results table");
+  const sortBtn = document.getElementById("sortButton");
+  if (!table || !sortBtn) return;
+
+  const headers = table.querySelectorAll("th");
+
+  if (sortEnabled) {
+    headers.forEach(th => th.onclick = null);
+    sortEnabled = false;
+    sortBtn.classList.remove("sort-on");
+    sortBtn.classList.add("sort-off");
+    return;
+  }
+
+  headers.forEach((th, index) => {
+    let asc = true;
+    th.style.cursor = "pointer";
+    th.onclick = () => {
+      const rows = Array.from(table.querySelectorAll("tbody tr"));
+      rows.sort((a, b) => {
+        const cellA = a.children[index].textContent.trim();
+        const cellB = b.children[index].textContent.trim();
+        return asc
+          ? cellA.localeCompare(cellB, undefined, { numeric: true })
+          : cellB.localeCompare(cellA, undefined, { numeric: true });
+      });
+      const tbody = table.querySelector("tbody");
+      rows.forEach(row => tbody.appendChild(row));
+      asc = !asc;
+    };
+  });
+
+  sortEnabled = true;
+  sortBtn.classList.remove("sort-off");
+  sortBtn.classList.add("sort-on");
+}
+
+    function openForm() {
+      window.open('https://forms.gle/5R8KycSdZV3vviZi8', '_blank');
+    }
+
+    function showUploadModal() {
+  document.getElementById("uploadModal").style.display = "block";
+  document.getElementById("overlay").style.display = "block";
+}
+
+function closeUploadModal() {
+  document.getElementById("uploadModal").style.display = "none";
+  document.getElementById("overlay").style.display = "none";
+}
+
+function uploadFile() {
+  const files = document.getElementById("fileInput").files;
+
+  if (!files || files.length === 0) {
+    alert("Please select at least one file.");
+    return;
+  }
+
+  if (!currentEpicSl) {
+    alert("Please search a record before uploading.");
+    return;
+  }
+
+  document.getElementById("loading").style.display = "block";
+
+  let uploadedCount = 0;
+  let failedCount = 0;
+
+  Array.from(files).forEach((file, index) => {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const base64 = e.target.result.split(",")[1];
+      google.script.run.withSuccessHandler((res) => {
+        if (res.success) {
+          uploadedCount++;
+        } else {
+          failedCount++;
+        }
+
+        if (uploadedCount + failedCount === files.length) {
+          document.getElementById("loading").style.display = "none";
+          closeUploadModal();
+          performSearch();
+          showToast(`✅ ${uploadedCount} uploaded, ❌ ${failedCount} failed`, failedCount > 0 ? 'error' : 'success');
+        }
+      }).uploadFiles({
+        base64: base64,
+        fileName: file.name,
+        mimeType: file.type,
+        epicSl: currentEpicSl.trim()
+      });
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderCheckboxes(columns) {
+  const container = document.getElementById('checkboxContainer');
+  container.innerHTML = '<button class="uncheck-btn" onclick="uncheckAll()">🗑️ Uncheck All</button>';
+  container.style.display = 'block';
+
+  columns.forEach(col => {
+    const label = document.createElement('label');
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = false; // default unchecked
+    checkbox.setAttribute('data-colname', col);
+
+    checkbox.onchange = function () {
+      applyColumnVisibility(); // Apply visibility when checkbox is changed
+    };
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(col));
+    container.appendChild(label);
+  });
+
+  // Apply default visibility (all visible)
+  applyColumnVisibility();
+}
+
+function applyColumnVisibility() {
+  const checkboxes = document.querySelectorAll('#checkboxContainer input[type="checkbox"]');
+  const table = document.querySelector("#results table");
+  if (!table) return;
+
+  const rows = table.rows;
+  const isVertical = [...rows].every(row => row.cells.length === 2); // 2-column: key-value
+
+  const anyChecked = [...checkboxes].some(cb => cb.checked);
+
+  if (isVertical) {
+    // ✅ VERTICAL VIEW (2-column key-value): Hide/show rows
+    for (let row of rows) {
+      const key = row.cells[0]?.textContent.trim();
+      const checkbox = [...checkboxes].find(cb => cb.getAttribute('data-colname') === key);
+      if (!anyChecked || (checkbox && checkbox.checked)) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    }
+
+  } else {
+    // ✅ HORIZONTAL VIEW (with header): Hide/show columns
+    const headerRow = table.rows[0]; // assumes first row is header
+    const colMap = {};
+    [...headerRow.cells].forEach((cell, index) => {
+      colMap[cell.textContent.trim()] = index;
+    });
+
+    // First hide all if any checkbox is selected
+    for (let row of rows) {
+      for (let cell of row.cells) {
+        cell.style.display = anyChecked ? 'none' : '';
+      }
+    }
+
+    // Show selected columns only
+    if (anyChecked) {
+      checkboxes.forEach(cb => {
+        if (!cb.checked) return;
+        const colName = cb.getAttribute('data-colname');
+        const colIndex = colMap[colName];
+        if (colIndex === undefined) return;
+
+        for (let row of rows) {
+          if (row.cells[colIndex]) {
+            row.cells[colIndex].style.display = '';
+          }
+        }
+      });
+    }
+  }
+}
+
+function uncheckAll() {
+  const checkboxes = document.querySelectorAll('#checkboxContainer input[type="checkbox"]');
+  checkboxes.forEach(cb => cb.checked = false);
+  applyColumnVisibility(); // Reset view
+}
+
+// ✅ GLOBALS
+let editEnabled = false;
+const undoStack = [];
+const redoStack = [];
+window.userOrgLogoURL = "https://example.com/logo.png"; // ✅ YOUR LOGO
+window.userProfileImgURL = document.getElementById("profileImg")?.src || "";
+
+// ✅ TOGGLE EDIT MODE
+function toggleEditMode() {
+  const password = document.getElementById("editPassword").value;
+  const editButton = document.querySelector('button[onclick="toggleEditMode()"]');
+
+  if (!editEnabled) {
+    // Validate password via Apps Script
+    google.script.run.withSuccessHandler(function(valid) {
+      if (!valid) {
+        alert("❌ Incorrect password.");
+        return;
+      }
+
+      enableEdit(true);
+
+      // ✅ Change text and button color to green (editing on)
+      editButton.textContent = "🔒 Editing ON";
+      editButton.classList.remove("off");
+      editButton.classList.add("on");
+
+      document.getElementById("editPassword").value = "";
+    }).validatePassword(password);
+  } else {
+    enableEdit(false);
+
+    // ✅ Change text and button color back to blue (editing off)
+    editButton.textContent = "✏️ Edit Mode";
+    editButton.classList.remove("on");
+    editButton.classList.add("off");
+  }
+}
+
+// ✅ ENABLE OR DISABLE EDIT MODE
+function enableEdit(enable) {
+  editEnabled = enable;
+
+  document.getElementById("saveChanges").style.display = enable ? "inline-block" : "none";
+  document.getElementById("deleteButton").style.display = enable ? "inline-block" : "none";
+
+  const table = document.querySelector("#resultsTable");
+  if (!table) return;
+
+  for (let r = 1; r < table.rows.length; r++) {
+    for (let c = 0; c < table.rows[r].cells.length; c++) {
+      table.rows[r].cells[c].contentEditable = enable;
+    }
+  }
+
+  // Optional: Add/editable class to highlight rows
+  if (enable) {
+    table.classList.add("editable");
+    table.classList.remove("read-only");
+  } else {
+    table.classList.remove("editable");
+    table.classList.add("read-only");
+  }
+}
+
+// ✅ SAVE
+function saveEditedData() {
+  const table = document.querySelector("#resultsTable");
+  if (!table || table.rows.length < 2) {
+    alert("❌ No record selected or table not found.");
+    return;
+  }
+
+  const headers = Array.from(table.rows[0].cells).map(c => c.textContent.trim());
+  const values = Array.from(table.rows[1].cells).map(c => c.textContent.trim());
+  const data = {};
+  headers.forEach((key, i) => data[key] = values[i]);
+
+  if (!data["Epic Sl. Number"]) {
+    alert("❌ 'Epic Sl. Number' is required.");
+    return;
+  }
+
+  google.script.run.withSuccessHandler(response => {
+    showToast(response, response.startsWith("✅") ? "success" : "error");
+    if (response.startsWith("✅")) performSearch();
+  }).saveEditedData(data);
+}
+
+// ✅ DELETE
+function confirmDelete() {
+  const table = document.querySelector("#resultsTable");
+  if (!table || table.rows.length < 2) {
+    alert("❌ No record selected.");
+    return;
+  }
+
+  const index = Array.from(table.rows[0].cells).findIndex(c => c.textContent === "Epic Sl. Number");
+  const epic = table.rows[1].cells[index]?.textContent.trim();
+
+  if (!epic || !confirm(`Delete record for Epic Sl. Number: ${epic}?`)) return;
+
+  google.script.run.withSuccessHandler(res => {
+    showToast(res, res.startsWith("✅") ? "success" : "error");
+    if (res.startsWith("✅")) {
+      document.getElementById("results").innerHTML = "";
+      document.getElementById("checkboxContainer").style.display = "none";
+    }
+  }).deleteRecordByEpic(epic);
+}
+
+// ✅ UNDO/REDO
+function undo() {
+  const action = undoStack.pop();
+  if (!action) return;
+  const table = document.querySelector("#resultsTable");
+  action.data.forEach(({ rowIndex, colIndex, value }) => {
+    table.rows[rowIndex].cells[colIndex].innerText = value;
+  });
+  redoStack.push(action);
+}
+
+function redo() {
+  const action = redoStack.pop();
+  if (!action) return;
+  const table = document.querySelector("#resultsTable");
+  const reverseData = [];
+  action.data.forEach(({ rowIndex, colIndex, value }) => {
+    reverseData.push({ rowIndex, colIndex, value: table.rows[rowIndex].cells[colIndex].innerText });
+    table.rows[rowIndex].cells[colIndex].innerText = "";
+  });
+  undoStack.push({ type: "clear", data: reverseData });
+}
+
+// ✅ Global settings (set once on app init)
+window.userOrgLogoURL = "https://i.postimg.cc/NF6b45fG/SAMADHAN-3.png"; // your static app logo
+window.userProfileImgURL = "https://yourdomain.com/profile.jpg"; // dynamically change per user
+
+function printRecord() {
+  const profileImg = window.userProfileImgURL || "https://via.placeholder.com/80";
+  const logoImg = window.userOrgLogoURL || "https://via.placeholder.com/150";
+  const table = document.querySelector("#results table");
+
+  if (!table) {
+    alert("❌ Nothing to print.");
+    return;
+  }
+
+  const newWin = window.open('', '_blank');
+  const doc = newWin.document;
+
+  doc.write(`
+    <html>
+      <head>
+        <title>Print View</title>
+        <style>
+          @page {
+            size: select;
+            margin: 1cm;
+          }
+
+          body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #fff;
+          }
+
+          .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center; /* Ensure center alignment */
+            margin-bottom: 20px;
+          }
+
+          .print-header img.logo {
+            height: 55px;
+            width: auto;
+            object-fit: contain;
+            display: block; /* Make sure logo is block */
+            margin-right: 20px; /* Give spacing between logo and profile */
+          }
+
+          .print-header img.profile {
+            height: 60px;
+            width: 60px;
+            object-fit: cover;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            display: block;
+          }
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            page-break-inside: auto;
+          }
+
+          th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            text-align: left;
+            vertical-align: top;
+            word-wrap: break-word;
+          }
+
+          th {
+            background-color: #333;
+            color: white;
+            font-weight: bold;
+          }
+
+          thead {
+            display: table-header-group;
+          }
+
+          tr {
+            page-break-inside: avoid;
+          }
+
+          .page-number::after {
+            content: "Page " counter(page);
+            position: fixed;
+            bottom: 10px;
+            right: 20px;
+            font-size: 12px;
+            color: #333;
+          }
+
+          @media screen {
+            .print-header {
+              display: none;
+            }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <img class="logo" src="${logoImg}" alt="Logo" />
+          <img class="profile" src="${profileImg}" alt="Profile" />
+        </div>
+        ${table.outerHTML}
+      </body>
+    </html>
+  `);
+
+  doc.close();
+  newWin.focus();
+  newWin.print();
+  newWin.close();
+}
+
+function toggleTheme() {
+  document.body.classList.toggle("night");
+
+  // Optional: Store preference in localStorage
+  const isNight = document.body.classList.contains("night");
+  localStorage.setItem("theme", isNight ? "night" : "day");
+}
+
+// Optional: Load saved theme on startup
+window.onload = () => {
+  const savedTheme = localStorage.getItem("theme");
+  if (savedTheme === "night") {
+    document.getElementById("themeToggle").checked = true;
+    document.body.classList.add("night");
+  }
+};
+
+// Function to toggle charts visibility
+    function toggleAnalysis() {
+      const container = document.getElementById("chartsContainer");
+      const chartBtn = document.querySelector('button[onclick="toggleAnalysis()"]');
+
+      if (!container || !chartBtn) return;
+
+      const isVisible = container.style.display === "block";
+      container.style.display = isVisible ? "none" : "block";
+
+      // ✅ Color toggle
+      chartBtn.style.backgroundColor = isVisible ? "#007bff" : "#17a2b8"; // blue ↔ teal
+
+      if (!isVisible) {
+        google.script.run.withSuccessHandler(drawCharts).getChartData();
+      }
+    }
+
+    // Function to draw charts once data is fetched
+    function drawCharts(data) {
+      // Gender Pie Chart
+      const genderCtx = document.getElementById('genderChart').getContext('2d');
+      new Chart(genderCtx, {
+        type: 'pie',
+        data: {
+          labels: Object.keys(data.gender),
+          datasets: [{
+            data: Object.values(data.gender),
+            backgroundColor: ['#36A2EB', '#FF6384'],
+          }]
+        }
+      });
+
+      // Collector's Choice Bar Chart
+      const choiceCtx = document.getElementById('choiceChart').getContext('2d');
+      new Chart(choiceCtx, {
+        type: 'bar',
+        data: {
+          labels: Object.keys(data.choice),
+          datasets: [{
+            label: 'Choices',
+            data: Object.values(data.choice),
+            backgroundColor: '#4CAF50',
+          }]
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true
+            }
+          }
+        }
+      });
+
+      // Display Gender-wise Choice Counts
+      const genderChoiceContainer = document.getElementById("genderChoiceContainer");
+      genderChoiceContainer.innerHTML = "<h2>Gender-wise Collector's Choice Count</h2>";
+
+      Object.keys(data.choiceByGender).forEach(choice => {
+        const maleCount = data.choiceByGender[choice].Male || 0;
+        const femaleCount = data.choiceByGender[choice].Female || 0;
+        const choiceDiv = document.createElement('div');
+        choiceDiv.innerHTML = `<strong>${choice}:</strong> Male: ${maleCount}, Female: ${femaleCount}`;
+        genderChoiceContainer.appendChild(choiceDiv);
+      });
+    }
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('https://partha881.github.io/samadhan-pwa/sw.js')
+        .then(() => console.log('✅ Service Worker registered'))
+        .catch(err => console.error('❌ SW registration failed:', err));
+    }
+
+  // Handle Install Prompt
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.getElementById('installBtn').style.display = 'inline-block';
+
+    document.getElementById('installBtn').addEventListener('click', () => {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(choiceResult => {
+        if (choiceResult.outcome === 'accepted') {
+          console.log('User accepted install');
+        } else {
+          console.log('User dismissed install');
+        }
+        deferredPrompt = null;
+      });
+    });
+  });
+
+function changePassword() {
+    const oldPwd = document.getElementById('oldPassword').value.trim();
+    const newPwd = document.getElementById('newPassword').value.trim();
+    if (!oldPwd || !newPwd) {
+      alert("Please fill both password fields.");
+      return;
+    }
+    google.script.run.withSuccessHandler(res => {
+      document.getElementById('changePasswordMsg').textContent = res.message;
+      if (res.success) {
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPassword').value = '';
+      }
+    }).changePassword(oldPwd, newPwd);
+  }
+
+</script>
+</body>
+</html>
