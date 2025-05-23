@@ -1,8 +1,8 @@
 {
   "name": "Samadhan App",
   "short_name": "Samadhan",
-  "start_url": "https://script.google.com/macros/s/AKfycbzZjogVhMfjULMB34Jz-IWDixvGzaZDuUQOdUkuPJTmmxXw9DcUBTr3mezmRAy5Z7HW4w/exec",
-  "scope": "https://script.google.com/macros/s/AKfycbzZjogVhMfjULMB34Jz-IWDixvGzaZDuUQOdUkuPJTmmxXw9DcUBTr3mezmRAy5Z7HW4w/exec",
+  "start_url": ".",
+  "scope": "/samadhan-pwa/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#1e88e5",
