@@ -1,7 +1,7 @@
 {
   "name": "Samadhan App",
   "short_name": "Samadhan",
-  "start_url": ".",
+  "start_url": "./",
   "scope": "/samadhan-pwa/",
   "display": "standalone",
   "background_color": "#ffffff",
